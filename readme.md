@@ -15,7 +15,7 @@ This project also requires the RsaToolbox for Qt4.8 project. Source code and usa
 Command-line utilities
 ----------------------
 
-Each of the subprojects corresponds to a command line utility
+Each of the subprojects corresponds to a command line utility.
 
 ### Setup
 
@@ -27,6 +27,12 @@ Usage:
 
 `filename` may contain path information.
 
+Returns:
+
+`0` if successful.
+
+`1` and error message on stderr if an error occurs.
+
 ### calibrate
 
 Uses an attached cal unit to calibrate ports 1-4.
@@ -34,6 +40,12 @@ Uses an attached cal unit to calibrate ports 1-4.
 Usage:
 
 `calibrate <connection_type> <address>`
+
+Returns:
+
+`0` if successful.
+
+`1` and error message on stderr if an error occurs.
 
 ### measure
 
@@ -44,3 +56,9 @@ Performs a measurement and saves the results into touchstone file `filename`
 Usage:
 
 `measure <connection_type> <address> <filename>`
+
+Returns:
+
+`0` if successful.
+
+`1` and error message on stderr if an error occurs.
