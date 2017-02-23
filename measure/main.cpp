@@ -1,6 +1,7 @@
 
 
 // RsaToolbox
+#include <VisaBus.h>
 #include <Vna.h>
 using namespace RsaToolbox;
 
@@ -35,7 +36,7 @@ using namespace RsaToolbox;
 // Failed example:
 //   measure gpib 20 test.s4p
 //   => return code: 1
-//      stderr:      "Instrument not connected"
+//      stderr:      "Instrument not found"
 
 bool           isArgs         (int     argc);
 ConnectionType connectionType (QString arg );
@@ -55,6 +56,12 @@ int main(int argc, char *argv[])
     if (type == ConnectionType::NoConnection)
         return 1;
 
+    QTextStream err(stderr);
+    if (!VisaBus::isVisaInstalled()) {
+        err << "VISA not installed";
+        return 1;
+    }
+
     // Check vna connection
     const QString address = args[2];
     Vna vna(type, address);
@@ -63,7 +70,6 @@ int main(int argc, char *argv[])
 
 
     if (vna.properties().physicalPorts() < 4) {
-        QTextStream err(stderr);
         err << "VNA must have at least 4 ports";
         return 1;
     }
@@ -111,7 +117,7 @@ ConnectionType connectionType(QString arg) {
 bool isVnaConnection(Vna &vna) {
     QTextStream err(stderr);
     if (!vna.isConnected() || vna.idString().isEmpty()) {
-        err << "Instrument not connected";
+        err << "Instrument not found";
         return false;
     }
     else if (!vna.isRohdeSchwarz()) {
