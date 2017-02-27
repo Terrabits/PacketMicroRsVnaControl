@@ -29,12 +29,12 @@ using namespace RsaToolbox;
 //   1:             failure. Check stderr for info.
 //
 // Successful example:
-//   measure tcpip 127.0.0.1 test.s4p
+//   setup tcpip 127.0.0.1 test.s4p
 //   => return code: 0
 //      stderr:      -empty-
 //
 // Failed example:
-//   measure gpib 20 usbc_data.znx
+//   setup gpib 20 usbc_data.znx
 //   => return code: 1
 //      stderr:      "Instrument not found"
 
@@ -82,16 +82,17 @@ int main(int argc, char *argv[])
     }
 
     // Upload set file to VNA
+    QString vna_filename = QFileInfo(filename).fileName();
     VnaFileSystem file = vna.fileSystem();
     file.changeDirectory(VnaFileSystem::Directory::RECALL_SETS_DIRECTORY);
-    file.uploadFile(filename, filename);
+    file.uploadFile(filename, vna_filename);
 
     // Apply set file
     vna.closeSets();
-    vna.openSet(filename);
+    vna.openSet(vna_filename);
 
     // Delete set file from VNA
-    file.deleteFile(filename);
+    file.deleteFile(vna_filename);
     file.changeDirectory(VnaFileSystem::Directory::DEFAULT_DIRECTORY);
 }
 
