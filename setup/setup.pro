@@ -1,9 +1,7 @@
 QT += core
 QT -= gui
 
-CONFIG += c++11
-
-TARGET = setup
+TARGET = vna_setup
 CONFIG += console
 CONFIG -= app_bundle
 

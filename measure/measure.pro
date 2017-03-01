@@ -1,7 +1,7 @@
 QT += core
 QT -= gui
 
-TARGET = measure
+TARGET = vna_measure
 CONFIG += console
 CONFIG -= app_bundle
 

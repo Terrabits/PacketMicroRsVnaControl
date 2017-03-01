@@ -7,6 +7,7 @@ using namespace RsaToolbox;
 
 // Qt
 #include <QApplication>
+#include <QDebug>
 #include <QString>
 #include <QStringList>
 #include <QTextStream>
@@ -80,7 +81,14 @@ int main(int argc, char *argv[])
 
     // Measure
     const QString filename = args[3];
-    vna.channel(1).linearSweep().measureToSnpLocally(filename, ports);
+    vna.settings().errorDisplayOff();
+    if (!vna.channel(1).linearSweep().measureToSnpLocally(filename, ports)) {
+        err << "Could not generate touchstone file";
+        return 1;
+    }
+    vna.isError();
+    vna.clearStatus();
+    vna.settings().errorDisplayOn();
 }
 
 bool isArgs(int argc) {

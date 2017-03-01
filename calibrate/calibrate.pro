@@ -1,7 +1,7 @@
 QT += core
 QT -= gui
 
-TARGET = calibrate
+TARGET = vna_calibrate
 CONFIG += console
 CONFIG -= app_bundle
 
