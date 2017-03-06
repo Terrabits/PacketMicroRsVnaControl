@@ -1,5 +1,6 @@
 TEMPLATE = subdirs
-SUBDIRS  = setup \
+SUBDIRS  = core \
+           setup \
            calibrate \
            measure
 CONFIG  += ordered

@@ -1,5 +1,8 @@
 
 
+// Project
+#include "core.h"
+
 // RsaToolbox
 #include <VisaBus.h>
 #include <Vna.h>
@@ -38,40 +41,31 @@ using namespace RsaToolbox;
 //   measure gpib 20 test.s4p
 //   => return code: 1
 //      stderr:      "Instrument not found"
-
-bool           isArgs         (int     argc);
-ConnectionType connectionType (QString arg );
-bool           isVnaConnection(Vna &vna);
-
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     QStringList args = QApplication::arguments();
 
-    // Check arguments
-    if (!isArgs(argc))
-        return 1;
 
-    // Check connection type
-    ConnectionType type = connectionType(args[1]);
-    if (type == ConnectionType::NoConnection)
-        return 1;
+    // Log
+    QString logFilename = Core::getLogFilename(Core::applicationName(), "R&S VNA measure log.txt");
+    Log log(logFilename, Core::applicationName(), Core::version());
+    log.printHeader();
 
-    QTextStream err(stderr);
-    if (!VisaBus::isVisaInstalled()) {
-        err << "VISA not installed";
+    // VNA
+    Vna vna;
+    if (!Core::connect(args, vna, log)) {
         return 1;
     }
 
-    // Check vna connection
-    const QString address = args[2];
-    Vna vna(type, address);
-    if (!isVnaConnection(vna))
-        return 1;
+    QTextStream err(stderr);
 
-
-    if (vna.properties().physicalPorts() < 4) {
-        err << "VNA must have at least 4 ports";
+    // filename arg
+    if (args.size() < 4) {
+        QString msg = "No touchstone filename given";
+        err << msg;
+        log.print("*");
+        log.printLine(msg);
         return 1;
     }
 
@@ -81,9 +75,12 @@ int main(int argc, char *argv[])
 
     // Measure
     const QString filename = args[3];
-    vna.settings().errorDisplayOff();
+    vna.settings().errorDisplayOff(); // RsaToolbox bug (disabled ports)
     if (!vna.channel(1).linearSweep().measureToSnpLocally(filename, ports)) {
-        err << "Could not generate touchstone file";
+        QString msg = "Could not generate touchstone file";
+        err << msg;
+        log.print("*");
+        log.printLine(msg);
         return 1;
     }
     vna.isError();
@@ -91,47 +88,4 @@ int main(int argc, char *argv[])
     vna.settings().errorDisplayOn();
 }
 
-bool isArgs(int argc) {
-    QTextStream err(stderr);
-    if (argc <= 1) {
-        err << "Missing connection type";
-        return false;
-    }
-    if (argc == 2) {
-        err << "Missing instrument address";
-        return false;
-    }
-    if (argc == 3) {
-        err << "Missing filename";
-        return false;
-    }
 
-    return true;
-}
-ConnectionType connectionType(QString arg) {
-
-    arg = arg.toLower();
-    if (arg == "tcpip") {
-        return ConnectionType::VisaTcpConnection;
-    }
-    else if (arg == "gpib") {
-        return ConnectionType::VisaGpibConnection;
-    }
-    else {
-        QTextStream(stderr) << "Invalid connection type";
-        return ConnectionType::NoConnection;
-    }
-}
-bool isVnaConnection(Vna &vna) {
-    QTextStream err(stderr);
-    if (!vna.isConnected() || vna.idString().isEmpty()) {
-        err << "Instrument not found";
-        return false;
-    }
-    else if (!vna.isRohdeSchwarz()) {
-        err << "Did not recognize *IDN? response as R&S VNA";
-        return false;
-    }
-
-    return true;
-}

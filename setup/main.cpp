@@ -1,6 +1,11 @@
 
 
+// Project
+#include "core.h"
+
 // RsaToolbox
+#include <General.h>
+#include <Log.h>
 #include <VisaBus.h>
 #include <Vna.h>
 using namespace RsaToolbox;
@@ -37,39 +42,29 @@ using namespace RsaToolbox;
 //   setup gpib 20 usbc_data.znx
 //   => return code: 1
 //      stderr:      "Instrument not found"
-
-bool           isArgs         (int     argc);
-ConnectionType connectionType (QString arg );
-bool           isVnaConnection(Vna &vna);
-
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     QStringList args = QApplication::arguments();
 
-    // Check arguments
-    if (!isArgs(argc))
-        return 1;
+    // Log
+    QString logFilename = Core::getLogFilename(Core::applicationName(), "R&S VNA setup log.txt");
+    Log log(logFilename, Core::applicationName(), Core::version());
+    log.printHeader();
 
-    // Check connection type
-    ConnectionType type = connectionType(args[1]);
-    if (type == ConnectionType::NoConnection)
-        return 1;
-
-    QTextStream err(stderr);
-    if (!VisaBus::isVisaInstalled()) {
-        err << "VISA not installed";
+    // VNA
+    Vna vna;
+    if (!Core::connect(args, vna, log)) {
         return 1;
     }
 
-    // Check vna connection
-    const QString address = args[2];
-    Vna vna(type, address);
-    if (!isVnaConnection(vna))
-        return 1;
-
-    if (vna.properties().physicalPorts() < 4) {
-        err << "VNA must have at least 4 ports";
+    QTextStream err(stderr);
+    // Check arguments
+    if (argc == 3) {
+        QString msg = "Missing filename";
+        err << msg;
+        log.print("*");
+        log.printLine(msg);
         return 1;
     }
 
@@ -77,7 +72,10 @@ int main(int argc, char *argv[])
     const QString filename = args[3];
     if (!QFileInfo(filename).exists()) {
         QString msg = "File \'%1\' not found";
-        err << msg.arg(filename);
+        msg         = msg.arg(filename);
+        err << msg;
+        log.print("*");
+        log.printLine(msg);
         return 1;
     }
 
@@ -94,49 +92,7 @@ int main(int argc, char *argv[])
     // Delete set file from VNA
     file.deleteFile(vna_filename);
     file.changeDirectory(VnaFileSystem::Directory::DEFAULT_DIRECTORY);
-}
 
-bool isArgs(int argc) {
-    QTextStream err(stderr);
-    if (argc <= 1) {
-        err << "Missing connection type";
-        return false;
-    }
-    if (argc == 2) {
-        err << "Missing instrument address";
-        return false;
-    }
-    if (argc == 3) {
-        err << "Missing filename";
-        return false;
-    }
-
-    return true;
-}
-ConnectionType connectionType(QString arg) {
-
-    arg = arg.toLower();
-    if (arg == "tcpip") {
-        return ConnectionType::VisaTcpConnection;
-    }
-    else if (arg == "gpib") {
-        return ConnectionType::VisaGpibConnection;
-    }
-    else {
-        QTextStream(stderr) << "Invalid connection type";
-        return ConnectionType::NoConnection;
-    }
-}
-bool isVnaConnection(Vna &vna) {
-    QTextStream err(stderr);
-    if (!vna.isConnected() || vna.idString().isEmpty()) {
-        err << "Instrument not found";
-        return false;
-    }
-    else if (!vna.isRohdeSchwarz()) {
-        err << "Did not recognize *IDN? response as R&S VNA";
-        return false;
-    }
-
-    return true;
+    // Error?
+    vna.isError();
 }

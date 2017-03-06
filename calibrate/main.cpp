@@ -1,5 +1,8 @@
 
 
+// Project
+#include "core.h"
+
 // RsaToolbox
 #include <VisaBus.h>
 #include <Vna.h>
@@ -37,43 +40,26 @@ using namespace RsaToolbox;
 //   calibrate tcpip 127.0.0.1
 //   => return code: 1
 //      stderr:      "VNA port 2 is not connected"
-
-bool           isArgs         (int     argc);
-ConnectionType connectionType (QString arg );
-bool           isVnaConnection(Vna &vna);
-bool           isPorts        (Vna &vna, QVector<uint> ports);
-bool           isFreqRange    (Vna &vna);
-
+bool isPorts         (Vna &vna, QVector<uint> ports);
+bool isFreqRange     (Vna &vna);
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     QStringList args = QApplication::arguments();
 
-    // Check arguments
-    if (!isArgs(argc))
-        return 1;
+    // Log
+    QString logFilename = Core::getLogFilename(Core::applicationName(), "R&S VNA calibrate log.txt");
+    Log log(logFilename, Core::applicationName(), Core::version());
+    log.printHeader();
 
-    // Check connection type
-    ConnectionType type = connectionType(args[1]);
-    if (type == ConnectionType::NoConnection)
+    // VNA
+    Vna vna;
+    if (!Core::connect(args, vna, log)) {
         return 1;
+    }
 
+    // Error stream
     QTextStream err(stderr);
-    if (!VisaBus::isVisaInstalled()) {
-        err << "VISA not installed";
-        return 1;
-    }
-
-    // Check vna connection
-    const QString address = args[2];
-    Vna vna(type, address);
-    if (!isVnaConnection(vna))
-        return 1;
-
-    if (vna.properties().physicalPorts() < 4) {
-        err << "VNA must have at least 4 ports";
-        return 1;
-    }
 
     // Check for cal unit
     if (!vna.isCalUnit()) {
@@ -93,48 +79,11 @@ int main(int argc, char *argv[])
 
     // Calibrate
     vna.calibrate().autoCalibrate(ports);
+
+    // Errors?
+    vna.isError();
 }
 
-bool isArgs(int argc) {
-    QTextStream err(stderr);
-    if (argc <= 1) {
-        err << "Missing connection type";
-        return 1;
-    }
-    if (argc == 2) {
-        err << "Missing instrument address";
-        return 1;
-    }
-
-    return true;
-}
-ConnectionType connectionType(QString arg) {
-
-    arg = arg.toLower();
-    if (arg == "tcpip") {
-        return ConnectionType::VisaTcpConnection;
-    }
-    else if (arg == "gpib") {
-        return ConnectionType::VisaGpibConnection;
-    }
-    else {
-        QTextStream(stderr) << "Invalid connection type";
-        return ConnectionType::NoConnection;
-    }
-}
-bool isVnaConnection(Vna &vna) {
-    QTextStream err(stderr);
-    if (!vna.isConnected() || vna.idString().isEmpty()) {
-        err << "Instrument not found";
-        return false;
-    }
-    else if (!vna.isRohdeSchwarz()) {
-        err << "Did not recognize *IDN? response as R&S VNA";
-        return false;
-    }
-
-    return true;
-}
 bool isPorts(Vna &vna, QVector<uint> ports) {
     QTextStream err(stderr);
 
@@ -160,10 +109,16 @@ bool isFreqRange(Vna &vna) {
 
     foreach (uint i, vna.channels()) {
         VnaChannel   ch        = vna.channel(i);
-        const double chMax_Hz  = ch.linearSweep().frequencies_Hz().last();
-        const double chMin_Hz  = ch.linearSweep().frequencies_Hz().first();
-        const double calMax_Hz = calUnit.maximumFrequency_Hz();
-        const double calMin_Hz = calUnit.minimumFrequency_Hz();
+        const double chMax_Hz  = std::round(ch.linearSweep().stop_Hz());
+        const double chMin_Hz  = std::round(ch.linearSweep().start_Hz());
+        const double calMax_Hz = std::round(calUnit.maximumFrequency_Hz());
+        const double calMin_Hz = std::round(calUnit.minimumFrequency_Hz());
+        vna.printLine("Cal unit info:");
+        vna.printLine(QString("chMax:  %1").arg(chMax_Hz));
+        vna.printLine(QString("chMin:  %1").arg(chMin_Hz));
+        vna.printLine(QString("calMax: %1").arg(calMax_Hz));
+        vna.printLine(QString("calMin: %1").arg(calMin_Hz));
+        vna.printLine();
         if (chMin_Hz < calMin_Hz) {
             err << "Cal unit frequency range too low";
             return false;
