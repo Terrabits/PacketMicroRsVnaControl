@@ -82,6 +82,7 @@ int main(int argc, char *argv[])
 
     // Errors?
     vna.isError();
+    return 0;
 }
 
 bool isPorts(Vna &vna, QVector<uint> ports) {

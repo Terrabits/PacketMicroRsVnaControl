@@ -17,7 +17,7 @@ QString Core::applicationName() {
     return "Advanced Interconnect Test Tool";
 }
 QString Core::version() {
-    return "0.1.0";
+    return "0.1.1";
 }
 
 QDir Core::getDataDir(const QString &applicationFolder) {

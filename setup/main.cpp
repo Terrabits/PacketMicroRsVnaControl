@@ -95,4 +95,5 @@ int main(int argc, char *argv[])
 
     // Error?
     vna.isError();
+    return 0;
 }

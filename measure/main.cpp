@@ -86,6 +86,7 @@ int main(int argc, char *argv[])
     vna.isError();
     vna.clearStatus();
     vna.settings().errorDisplayOn();
+    return 0;
 }
 
 
